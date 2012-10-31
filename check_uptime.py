@@ -18,7 +18,7 @@ EXIT_CRIT = 2
 EXIT_UNKNOWN = 3
 
 
-def getUptime():
+def getUptime(use_stdin=False):
     """ Returns the uptime in seconds and split in
     days, hours and minutes.
     """
@@ -26,35 +26,37 @@ def getUptime():
     HOUR = MINUTE * 60
     DAY = HOUR * 24
 
-    uptime = float(open("/proc/uptime").read().split()[0])
-    days = int(uptime / DAY)
-    hours = int((uptime % DAY) / HOUR)
-    minutes = int((uptime % HOUR) / MINUTE)
+    if use_stdin:
+        input = sys.stdin.read()
+    else:
+        with open('/proc/uptime', 'r') as f:
+            input = f.read()
 
-    return uptime, days, hours, minutes
+    d = {}
+    d['uptime'] = float(input.split()[0])
+    d['days'] = int(d['uptime'] / DAY)
+    d['hours'] = int((d['uptime'] % DAY) / HOUR)
+    d['minutes'] = int((d['uptime'] % HOUR) / MINUTE)
+
+    return d
 
 
-def checkUptime(warn, crit):
+def checkUptime(warn, crit, uptime):
     """ Checks the uptime against WARN and CRIT values and
     returns an exit state and a message.
     """
-    uptime, days, hours, minutes = getUptime()
-
     # Convert WARN and CRIT from minutes to seconds
-    warn = warn * 60
-    crit = crit * 60
-    
-    if uptime < crit:
+    uptime['warn'] = warn * 60
+    uptime['crit'] = crit * 60
+
+    if uptime['uptime'] < uptime['crit']:
         ret = EXIT_CRIT
-    elif uptime < warn:
+    elif uptime['uptime'] < uptime['warn']:
         ret = EXIT_WARN
     else:
         ret = EXIT_OK
 
-    msg = "Uptime is %s days, %s:%s|uptime=%ss;%s;%s" % (days, hours,
-                                                        minutes,
-                                                        int(uptime),
-                                                        warn, crit)
+    msg = "Uptime is %(days)dd %(hours)dh %(minutes)dm|uptime=%(uptime)ds;%(warn)d;%(crit)d" % uptime
 
     return ret, msg
 
@@ -64,15 +66,18 @@ def main():
     usage = "Usage: %prog -w WARN -c CRIT"
     description = "Checks uptime if lower than CRIT or WARN"
     parser = OptionParser(usage, description=description)
-    parser.add_option("-w", "--warn", dest="warn", type="int", 
-                help="Time in minutes that triggers a warning state.")
-    parser.add_option("-c", "--crit", dest="crit", type="int",
-                help="Time in minutes that triggers a critical state.")
+    parser.add_option("-w", "--warn", dest="warn", type="int", default=300,
+                      help="Time in minutes that triggers a warning state.")
+    parser.add_option("-c", "--crit", dest="crit", type="int", default=60,
+                      help="Time in minutes that triggers a critical state.")
+    parser.add_option("-s", "--stdin", dest="use_stdin", action="store_true",
+                      help="Read uptime data from stdin")
 
     (options, args) = parser.parse_args()
 
     if options.warn and options.crit:
-        (ret, msg) = checkUptime(options.warn, options.crit)
+        uptime_data = getUptime(options.use_stdin)
+        (ret, msg) = checkUptime(options.warn, options.crit, uptime_data)
         print msg
         sys.exit(ret)
     else:
