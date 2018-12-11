@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 check_redis.py: Nagios plugin for checking a redis server.
@@ -51,7 +51,7 @@ class RedisCheck(object):
             self.message = message
 
     def _exit(self):
-        print self.message + self._getPerfData()
+        print (self.message + self._getPerfData())
         sys.exit(self.status)
 
     def _fetchInfo(self):
