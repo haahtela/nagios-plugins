@@ -120,9 +120,9 @@ class RedisCheck(object):
     def checkMemory(self):
         mem = self.getUsedMem()
 
-        if mem < self.memCrit:
+        if float(mem) < self.memCrit:
             ret = EXIT_CRIT
-        elif mem < self.memWarn:
+        elif float(mem) < self.memWarn:
             ret = EXIT_WARN
         else:
             ret = EXIT_OK
