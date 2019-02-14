@@ -51,7 +51,10 @@ class RedisCheck(object):
             self.message = message
 
     def _exit(self):
-        print (self.message + self._getPerfData())
+        if hasattr(self, 'info'):
+            print (self.message + self._getPerfData())
+        else:
+            print (self.message)
         sys.exit(self.status)
 
     def _fetchInfo(self):
